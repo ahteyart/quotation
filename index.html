@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quotation / 报价单 / Sebut Harga</title>
+<style>
+  :root{
+    --bg:#f4f6f9; --card:#ffffff; --ink:#1f2933; --muted:#6b7280;
+    --line:#e2e8f0; --brand:#0f766e; --brand-dark:#0b5d56; --accent:#f0fdfa;
+    --danger:#dc2626; --wa:#25d366;
+    --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:"Segoe UI",Roboto,"Microsoft YaHei","PingFang SC",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:14px; line-height:1.45;
+  }
+  h1,h2,h3{margin:0;}
+  button{font-family:inherit; cursor:pointer;}
+  input,select,textarea{font-family:inherit; font-size:14px;}
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    position:sticky; top:0; z-index:20; background:var(--brand); color:#fff;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:10px 16px; box-shadow:var(--shadow);
+  }
+  .toolbar .title{font-weight:700; font-size:16px; margin-right:auto;}
+  .toolbar button, .lang-switch button{
+    border:none; border-radius:7px; padding:8px 14px; font-weight:600; font-size:13px;
+    background:rgba(255,255,255,.15); color:#fff; transition:background .15s;
+  }
+  .toolbar button:hover{background:rgba(255,255,255,.28);}
+  .toolbar .btn-wa{background:var(--wa); color:#04331a;}
+  .toolbar .btn-wa:hover{background:#1fb457;}
+  .toolbar .btn-pdf{background:#fff; color:var(--brand-dark);}
+  .toolbar .btn-pdf:hover{background:#e6fffb;}
+  .lang-switch{display:flex; gap:4px; background:rgba(0,0,0,.12); padding:3px; border-radius:9px;}
+  .lang-switch button{padding:6px 12px; background:transparent;}
+  .lang-switch button.active{background:#fff; color:var(--brand-dark);}
+
+  .wrap{max-width:1150px; margin:20px auto; padding:0 16px; display:grid;
+    grid-template-columns:340px 1fr; gap:20px; align-items:start;}
+  @media (max-width:880px){ .wrap{grid-template-columns:1fr;} }
+
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    box-shadow:var(--shadow); padding:16px; margin-bottom:16px;}
+  .panel h2{font-size:13px; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--muted); margin-bottom:12px;}
+
+  label.field{display:block; margin-bottom:10px;}
+  label.field span{display:block; font-size:12px; color:var(--muted); margin-bottom:3px;}
+  .field input, .field textarea{
+    width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:#fff;
+  }
+  .field input:focus, .field textarea:focus{outline:none; border-color:var(--brand);}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+  /* ---------- Product catalog ---------- */
+  #search{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;}
+  #search:focus{outline:none; border-color:var(--brand);}
+  .cat-chips{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0;}
+  .chip{border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:20px;
+    padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer; transition:all .12s;}
+  .chip:hover{border-color:var(--brand);}
+  .chip.active{background:var(--brand); border-color:var(--brand); color:#fff;}
+  .catalog{max-height:460px; overflow:auto; border:1px solid var(--line); border-radius:10px;}
+  .cat-row{display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line);}
+  .cat-row:last-child{border-bottom:none;}
+  .cat-row.in-cart{background:var(--accent);}
+  .cat-row .info{flex:1; min-width:0;}
+  .cat-row .name{font-weight:600; line-height:1.3;}
+  .cat-row .sub{font-size:12px; color:var(--muted); display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:2px;}
+  .cat-row .price{font-weight:700; color:var(--brand-dark); white-space:nowrap;}
+  .catalog-empty{padding:34px 12px; text-align:center; color:var(--muted);}
+  /* stepper + add button */
+  .stepper{display:flex; align-items:center; flex:none;}
+  .add-btn{border:none; background:var(--brand); color:#fff; font-weight:700; font-size:13px;
+    border-radius:8px; padding:8px 14px; cursor:pointer; white-space:nowrap;}
+  .add-btn:hover{background:var(--brand-dark);}
+  .step-btn{width:32px; height:32px; border:1px solid var(--brand); background:#fff; color:var(--brand-dark);
+    font-size:18px; font-weight:700; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .step-btn:first-child{border-radius:8px 0 0 8px;}
+  .step-btn:last-child{border-radius:0 8px 8px 0;}
+  .step-btn:hover{background:var(--accent);}
+  .step-num{min-width:40px; height:32px; border-top:1px solid var(--brand); border-bottom:1px solid var(--brand);
+    display:flex; align-items:center; justify-content:center; font-weight:700; background:#fff;}
+  .hint{font-size:12px; color:var(--muted); margin-top:6px;}
+  .sync-btn{width:100%; border:none; border-radius:7px; padding:10px; font-weight:600;
+    background:var(--brand); color:#fff; transition:background .15s;}
+  .sync-btn:hover{background:var(--brand-dark);}
+  .sync-btn:disabled{opacity:.6; cursor:default;}
+  .badge{display:inline-block; font-size:12px; padding:2px 8px; border-radius:20px;
+    background:var(--accent); color:var(--brand-dark); font-weight:600;}
+
+  /* ---------- Quotation document ---------- */
+  .doc{background:#fff; border:1px solid var(--line); border-radius:12px;
+    box-shadow:var(--shadow); padding:30px 34px; min-height:400px;}
+  .doc-head{display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap;
+    border-bottom:3px solid var(--brand); padding-bottom:16px; margin-bottom:18px;}
+  .doc-company h3{font-size:20px; color:var(--brand-dark);}
+  .doc-company .meta{color:var(--muted); font-size:13px; white-space:pre-line; margin-top:4px;}
+  .doc-title{text-align:right;}
+  .doc-title .big{font-size:26px; font-weight:800; letter-spacing:.02em; color:var(--ink);}
+  .doc-title .qmeta{font-size:13px; color:var(--muted); margin-top:6px;}
+  .doc-title .qmeta b{color:var(--ink);}
+
+  .cust{background:var(--accent); border-radius:8px; padding:12px 14px; margin-bottom:18px;}
+  .cust .lbl{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em;}
+  .cust .val{font-weight:600; margin-top:2px; white-space:pre-line;}
+
+  table.items{width:100%; border-collapse:collapse;}
+  table.items th{background:var(--brand); color:#fff; font-size:12px; text-transform:uppercase;
+    letter-spacing:.03em; padding:9px 10px; text-align:left;}
+  table.items th.num, table.items td.num{text-align:right;}
+  table.items th.ctr, table.items td.ctr{text-align:center;}
+  table.items td{padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  table.items tr:last-child td{border-bottom:2px solid var(--brand);}
+  .it-name{font-weight:600;}
+  .it-code{font-size:12px; color:var(--muted);}
+  .price-input{width:90px; padding:5px 6px; border:1px solid var(--line);
+    border-radius:6px; text-align:right;}
+  .rm-remove{border:none; background:transparent; color:var(--danger); font-size:16px;
+    line-height:1; padding:4px 6px; border-radius:6px;}
+  .rm-remove:hover{background:#fee2e2;}
+  .empty{padding:40px 10px; text-align:center; color:var(--muted);}
+
+  .totals{display:flex; justify-content:flex-end; margin-top:16px;}
+  .totals .box{min-width:260px;}
+  .totals .row{display:flex; justify-content:space-between; padding:6px 0;}
+  .totals .grand{border-top:2px solid var(--ink); margin-top:6px; padding-top:10px;
+    font-size:19px; font-weight:800;}
+  .totals .grand .amt{color:var(--brand-dark);}
+
+  .foot-note{margin-top:26px; font-size:12px; color:var(--muted); border-top:1px dashed var(--line);
+    padding-top:12px;}
+
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; padding:11px 18px; border-radius:8px; font-weight:600;
+    box-shadow:0 6px 20px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .2s;
+    z-index:50;}
+  .toast.show{opacity:1;}
+
+  /* ---------- Print ---------- */
+  @media print{
+    .no-print{display:none !important;}
+    body{background:#fff;}
+    .wrap{display:block; margin:0; padding:0; max-width:none;}
+    .doc{border:none; box-shadow:none; border-radius:0; padding:0;}
+    .price-input{border:none; background:transparent; width:auto; text-align:right; padding:0;}
+    .step-btn{display:none !important;}
+    .step-num{border:none !important; min-width:auto !important; justify-content:center;}
+    table.items th{ -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    @page{margin:14mm;}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar no-print">
+  <div class="title" id="appTitle">Quotation</div>
+  <div class="lang-switch">
+    <button data-lang="zh">中文</button>
+    <button data-lang="en" class="active">EN</button>
+    <button data-lang="ms">BM</button>
+  </div>
+  <button id="btnLoad" data-i="loadCsv">Load price list</button>
+  <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none">
+  <button class="btn-wa" id="btnWa" data-i="copyWa">Copy WhatsApp</button>
+  <button class="btn-pdf" id="btnPdf" data-i="savePdf">Save PDF</button>
+</div>
+
+<div class="wrap">
+  <!-- LEFT: controls -->
+  <div class="no-print">
+    <div class="panel">
+      <h2 data-i="companyInfo">Company Info</h2>
+      <label class="field"><span data-i="coName">Company name</span><input id="coName"></label>
+      <label class="field"><span data-i="coDetails">Address / Phone / Email</span><textarea id="coDetails" rows="3"></textarea></label>
+      <label class="field"><span data-i="quotePrefix">Quote No. prefix (per device)</span><input id="quotePrefix" placeholder="Q" autocomplete="off"></label>
+      <div class="hint" data-i="savedHint">Saved automatically in this browser.</div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i="customerInfo">Customer Info</h2>
+      <label class="field"><span data-i="custName">Customer name</span><input id="custName"></label>
+      <label class="field"><span data-i="custDetails">Company / Phone</span><textarea id="custDetails" rows="2"></textarea></label>
+      <div class="two-col">
+        <label class="field"><span data-i="quoteNo">Quote No.</span><input id="quoteNo"></label>
+        <label class="field"><span data-i="quoteDate">Date</span><input id="quoteDate" type="date"></label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i="priceListSrc">Price List</h2>
+      <label class="field"><span data-i="sheetUrlLbl">Google Sheet Web App URL</span>
+        <input id="sheetUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off"></label>
+      <button id="btnSync" class="sync-btn" data-i="syncBtn">Sync from Google Sheet</button>
+      <div class="hint" id="listInfo" style="margin-top:8px;"></div>
+      <div class="hint" data-i="csvAlt">Or click “Load price list” (top) to load a CSV file instead.</div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i="addItems">Add Items</h2>
+      <div id="noList" class="hint" style="margin-bottom:8px;">
+        <span class="badge" data-i="noListBadge">No price list</span>
+        <span data-i="noListMsg"> — sync your Google Sheet or load a CSV above.</span>
+      </div>
+      <input id="search" data-i="searchPh" placeholder="Search product…" disabled autocomplete="off">
+      <div class="cat-chips" id="catChips"></div>
+      <div class="catalog" id="catalog"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: quotation document -->
+  <div class="doc" id="doc">
+    <div class="doc-head">
+      <div class="doc-company">
+        <h3 id="docCoName">Your Company Name</h3>
+        <div class="meta" id="docCoDetails"></div>
+      </div>
+      <div class="doc-title">
+        <div class="big" id="docTitle">QUOTATION</div>
+        <div class="qmeta">
+          <div><span data-i="quoteNo">Quote No.</span>: <b id="docQuoteNo">—</b></div>
+          <div><span data-i="quoteDate">Date</span>: <b id="docDate">—</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cust" id="docCustWrap">
+      <div class="lbl" data-i="billTo">Quotation for</div>
+      <div class="val" id="docCust">—</div>
+    </div>
+
+    <table class="items">
+      <thead>
+        <tr>
+          <th class="ctr" style="width:38px;">#</th>
+          <th data-i="thProduct">Product</th>
+          <th class="ctr" style="width:70px;" data-i="thQty">Qty</th>
+          <th class="num" style="width:100px;" data-i="thPrice">Unit Price</th>
+          <th class="num" style="width:110px;" data-i="thAmount">Amount</th>
+          <th class="no-print" style="width:34px;"></th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody">
+        <tr><td colspan="6" class="empty" data-i="emptyItems">No items yet. Search and add products on the left.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="totals">
+      <div class="box">
+        <div class="row grand">
+          <span data-i="grandTotal">TOTAL</span>
+          <span class="amt" id="grandTotal">RM 0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot-note" id="footNote"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ---------------- i18n ---------------- */
+const I18N = {
+  en:{ appTitle:"Quotation", docTitle:"QUOTATION", loadCsv:"Load price list",
+    copyWa:"Copy WhatsApp", savePdf:"Save PDF", companyInfo:"Company Info",
+    coName:"Company name", coDetails:"Address / Phone / Email", quotePrefix:"Quote No. prefix (per device)", savedHint:"Saved automatically in this browser.",
+    customerInfo:"Customer Info", custName:"Customer name", custDetails:"Company / Phone",
+    quoteNo:"Quote No.", quoteDate:"Date", addItems:"Add Items", noListBadge:"No price list",
+    noListMsg:" — sync your Google Sheet or load a CSV above.", searchPh:"Search product…",
+    billTo:"Quotation for", thProduct:"Product", thQty:"Qty", thPrice:"Unit Price",
+    thAmount:"Amount", grandTotal:"TOTAL", emptyItems:"No items yet. Search and add products on the left.",
+    coPlaceholder:"Your Company Name", waTitle:"QUOTATION", waTo:"To", waTotal:"TOTAL",
+    footNote:"This quotation is valid for 30 days. Prices are in Malaysian Ringgit (RM).",
+    priceListSrc:"Price List", sheetUrlLbl:"Google Sheet Web App URL", syncBtn:"Sync from Google Sheet",
+    csvAlt:"Or click “Load price list” (top) to load a CSV file instead.",
+    syncing:"Syncing…", syncNoUrl:"Paste your Web App URL first",
+    syncFail:"Sync failed — check the URL and that the script is deployed to “Anyone”.",
+    add:"Add", allCats:"All", noMatch:"No products match." },
+  zh:{ appTitle:"报价单", docTitle:"报 价 单", loadCsv:"加载价格表",
+    copyWa:"复制WhatsApp", savePdf:"保存PDF", companyInfo:"公司资料",
+    coName:"公司名称", coDetails:"地址 / 电话 / 电邮", quotePrefix:"报价编号前缀（每台设备）", savedHint:"已自动保存在此浏览器。",
+    customerInfo:"客户资料", custName:"客户名称", custDetails:"公司 / 电话",
+    quoteNo:"报价编号", quoteDate:"日期", addItems:"添加项目", noListBadge:"未加载价格表",
+    noListMsg:" —— 同步 Google Sheet 或加载 CSV 文件。", searchPh:"搜索产品…",
+    billTo:"报价给", thProduct:"产品", thQty:"数量", thPrice:"单价",
+    thAmount:"金额", grandTotal:"总计", emptyItems:"尚无项目。请在左侧搜索并添加产品。",
+    coPlaceholder:"您的公司名称", waTitle:"报价单", waTo:"报价给", waTotal:"总计",
+    footNote:"此报价单有效期为30天。价格以马币（RM）计算。",
+    priceListSrc:"价格表", sheetUrlLbl:"Google Sheet 网页应用网址", syncBtn:"从 Google Sheet 同步",
+    csvAlt:"或点击顶部「加载价格表」改用 CSV 文件。",
+    syncing:"同步中…", syncNoUrl:"请先粘贴网页应用网址",
+    syncFail:"同步失败 —— 请检查网址，并确认脚本已部署为「任何人」。",
+    add:"添加", allCats:"全部", noMatch:"没有符合的产品。" },
+  ms:{ appTitle:"Sebut Harga", docTitle:"SEBUT HARGA", loadCsv:"Muat senarai harga",
+    copyWa:"Salin WhatsApp", savePdf:"Simpan PDF", companyInfo:"Maklumat Syarikat",
+    coName:"Nama syarikat", coDetails:"Alamat / Telefon / E-mel", quotePrefix:"Awalan No. Sebut Harga (setiap peranti)", savedHint:"Disimpan automatik dalam pelayar ini.",
+    customerInfo:"Maklumat Pelanggan", custName:"Nama pelanggan", custDetails:"Syarikat / Telefon",
+    quoteNo:"No. Sebut Harga", quoteDate:"Tarikh", addItems:"Tambah Item", noListBadge:"Tiada senarai harga",
+    noListMsg:" — segerak Google Sheet atau muat fail CSV di atas.", searchPh:"Cari produk…",
+    billTo:"Sebut harga untuk", thProduct:"Produk", thQty:"Kuantiti", thPrice:"Harga Seunit",
+    thAmount:"Jumlah", grandTotal:"JUMLAH", emptyItems:"Tiada item lagi. Cari dan tambah produk di sebelah kiri.",
+    coPlaceholder:"Nama Syarikat Anda", waTitle:"SEBUT HARGA", waTo:"Kepada", waTotal:"JUMLAH",
+    footNote:"Sebut harga ini sah selama 30 hari. Harga dalam Ringgit Malaysia (RM).",
+    priceListSrc:"Senarai Harga", sheetUrlLbl:"URL Aplikasi Web Google Sheet", syncBtn:"Segerak dari Google Sheet",
+    csvAlt:"Atau klik “Muat senarai harga” (atas) untuk guna fail CSV.",
+    syncing:"Menyegerak…", syncNoUrl:"Tampal URL Aplikasi Web dahulu",
+    syncFail:"Gagal segerak — semak URL dan pastikan skrip disiar kepada “Anyone”.",
+    add:"Tambah", allCats:"Semua", noMatch:"Tiada produk sepadan." }
+};
+
+let lang = localStorage.getItem("q_lang") || "en";
+let products = [];      // {code, zh, en, ms, cat, price, key}
+let items = [];         // {code, zh, en, ms, cat, price, key, qty}
+let selectedCat = "all";
+
+// Default Google Sheet Web App URL — new phones auto-load prices with nothing to paste.
+// (Leave "" to require each device to paste its own URL.)
+const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbwp3XEpCEJCg0KhpcmdErdpUJhEX6RW1RL_1i15syQMBK0Fz3_JjCBywMn3Ve1AhqPP/exec";
+
+/* ---------------- helpers ---------------- */
+const $ = id => document.getElementById(id);
+const fmt = n => "RM " + (Number(n)||0).toLocaleString("en-MY",{minimumFractionDigits:2,maximumFractionDigits:2});
+function nameOf(p){ return p[lang] || p.en || p.zh || p.ms || p.code || "?"; }
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200); }
+
+/* ---------------- CSV parsing ---------------- */
+function parseCSV(text){
+  text = text.replace(/^﻿/,"");            // strip BOM
+  const rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; }
+      else cur+=c;
+    }else{
+      if(c==='"') q=true;
+      else if(c===','){ row.push(cur); cur=""; }
+      else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=""; }
+      else if(c==='\r'){ /* ignore */ }
+      else cur+=c;
+    }
+  }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r=>r.some(c=>String(c).trim()!==""));
+}
+
+const ALIASES = {
+  code:["code","编号","kod","sku","代码","产品编号"],
+  zh:["中文","华文","chinese","name_zh"],
+  en:["english","英文","name_en"],
+  ms:["nama","(bm)","bm","malay","melayu","马来","name_ms","bahasa"],
+  cat:["category","类别","kategori","分类","种类"],
+  price:["price","harga","价格","单价","价钱","unit price","amount"]
+};
+// Substring match, so compound headers like "编号 / Code / Kod" or "价格 / Harga (RM)" match.
+function matchCols(header){
+  const norm = header.map(h=>String(h).trim().toLowerCase());
+  const map={};
+  for(const key in ALIASES){
+    let idx=-1;
+    for(const a of ALIASES[key]){
+      const p = norm.findIndex(h=>h.includes(a));
+      if(p!==-1){ idx=p; break; }
+    }
+    map[key]=idx;
+  }
+  return map;
+}
+function cleanPrice(v){ return parseFloat(String(v).replace(/[^0-9.\-]/g,""))||0; }
+
+function loadProductsFromCSV(text){
+  const rows = parseCSV(text);
+  if(rows.length<2) throw new Error("empty");
+  const map = matchCols(rows[0]);
+  if(map.price===-1 && map.en===-1 && map.zh===-1 && map.ms===-1)
+    throw new Error("nocols");
+  const out=[];
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i];
+    const g=k=> map[k]!==-1 ? String(r[map[k]]??"").trim() : "";
+    const p={ code:g("code"), zh:g("zh"), en:g("en"), ms:g("ms"), cat:g("cat"), price:cleanPrice(g("price")) };
+    if(!p.code && !p.zh && !p.en && !p.ms) continue;
+    out.push(p);
+  }
+  return out;
+}
+
+/* ---------------- language ---------------- */
+function applyLang(){
+  const t=I18N[lang];
+  document.documentElement.lang = lang==="zh"?"zh":(lang==="ms"?"ms":"en");
+  document.querySelectorAll("[data-i]").forEach(el=>{
+    const k=el.getAttribute("data-i");
+    if(t[k]!==undefined){
+      if(el.tagName==="INPUT") el.placeholder=t[k];
+      else el.textContent=t[k];
+    }
+  });
+  document.title = t.appTitle + " / 报价单 / Sebut Harga";
+  $("appTitle").textContent=t.appTitle;
+  $("docTitle").textContent=t.docTitle;
+  document.querySelectorAll(".lang-switch button").forEach(b=>b.classList.toggle("active",b.dataset.lang===lang));
+  $("coName").placeholder=t.coPlaceholder;
+  $("footNote").textContent=t.footNote;
+  renderItems(); renderChips(); renderCatalog(); renderDoc();
+}
+
+/* ---------------- rendering ---------------- */
+function renderDoc(){
+  const t=I18N[lang];
+  $("docCoName").textContent = $("coName").value.trim() || t.coPlaceholder;
+  $("docCoDetails").textContent = $("coDetails").value.trim();
+  $("docQuoteNo").textContent = $("quoteNo").value.trim() || "—";
+  const d=$("quoteDate").value;
+  $("docDate").textContent = d ? d.split("-").reverse().join("/") : "—";
+  const cust=[ $("custName").value.trim(), $("custDetails").value.trim() ].filter(Boolean).join("\n");
+  $("docCust").textContent = cust || "—";
+}
+
+function renderItems(){
+  const body=$("itemsBody");
+  if(items.length===0){
+    body.innerHTML=`<tr><td colspan="6" class="empty">${I18N[lang].emptyItems}</td></tr>`;
+    $("grandTotal").textContent=fmt(0); return;
+  }
+  let total=0;
+  body.innerHTML = items.map((it,i)=>{
+    const amt=it.price*it.qty; total+=amt;
+    return `<tr>
+      <td class="ctr">${i+1}</td>
+      <td><div class="it-name">${escapeHtml(nameOf(it))}</div>${it.code?`<div class="it-code">${escapeHtml(it.code)}</div>`:""}</td>
+      <td class="ctr"><div class="stepper" style="justify-content:center;">
+        <button class="step-btn" data-key="${escapeHtml(it.key)}" data-d="-1">−</button>
+        <span class="step-num">${it.qty}</span>
+        <button class="step-btn" data-key="${escapeHtml(it.key)}" data-d="1">+</button></div></td>
+      <td class="num"><input class="price-input" type="number" min="0" step="0.01" value="${it.price}" data-idx="${i}" data-f="price"></td>
+      <td class="num">${fmt(amt)}</td>
+      <td class="no-print ctr"><button class="rm-remove" data-rmkey="${escapeHtml(it.key)}" title="remove">✕</button></td>
+    </tr>`;
+  }).join("");
+  $("grandTotal").textContent=fmt(total);
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---------------- actions ---------------- */
+function applyProducts(list){
+  if(!Array.isArray(list) || !list.length){
+    toast(lang==="zh"?"没有找到产品":(lang==="ms"?"Tiada produk dijumpai":"No products found"));
+    return false;
+  }
+  products = list.map((p,idx)=>{
+    const o={
+      code:String(p.code||"").trim(), zh:String(p.zh||"").trim(),
+      en:String(p.en||"").trim(), ms:String(p.ms||"").trim(),
+      cat:String(p.cat||"").trim(), price:cleanPrice(p.price)
+    };
+    o.key = o.code ? "c:"+o.code : "n:"+idx+":"+(o.en||o.zh||o.ms);
+    return o;
+  });
+  selectedCat = "all";
+  $("search").value="";
+  $("search").disabled=false;
+  $("noList").style.display="none";
+  const msg = lang==="zh"?`已加载 ${products.length} 个产品`:(lang==="ms"?`${products.length} produk dimuat`:`${products.length} products loaded`);
+  $("listInfo").textContent = msg;
+  toast(msg+" ✓");
+  renderChips(); renderCatalog(); renderItems();
+  return true;
+}
+
+/* ---- cart ---- */
+function prodByKey(key){ return products.find(p=>p.key===key); }
+function getQty(key){ const it=items.find(i=>i.key===key); return it?it.qty:0; }
+function setQty(key, q, prod){
+  q = Math.max(0, Math.floor(q)||0);
+  const it = items.find(i=>i.key===key);
+  if(q<=0){ if(it) items.splice(items.indexOf(it),1); }
+  else if(it){ it.qty=q; }
+  else if(prod){ items.push({...prod, qty:q}); }
+  renderAll();
+}
+function renderAll(){ renderItems(); renderCatalog(); }
+
+/* ---- category chips ---- */
+function renderChips(){
+  const box=$("catChips");
+  const cats=[]; products.forEach(p=>{ if(p.cat && cats.indexOf(p.cat)===-1) cats.push(p.cat); });
+  if(!cats.length){ box.innerHTML=""; box.style.display="none"; return; }
+  box.style.display="flex";
+  box.innerHTML =
+    `<button class="chip ${selectedCat==='all'?'active':''}" data-cat="all">${escapeHtml(I18N[lang].allCats)}</button>` +
+    cats.map(c=>`<button class="chip ${selectedCat===c?'active':''}" data-cat="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join("");
+}
+
+/* ---- catalog ---- */
+function renderCatalog(){
+  const box=$("catalog");
+  if(!products.length){ box.innerHTML=""; return; }
+  const term=($("search").value||"").trim().toLowerCase();
+  const list=products.filter(p=>{
+    if(selectedCat!=="all" && (p.cat||"")!==selectedCat) return false;
+    if(!term) return true;
+    return [p.code,p.zh,p.en,p.ms].some(v=>String(v).toLowerCase().includes(term));
+  });
+  if(!list.length){ box.innerHTML=`<div class="catalog-empty">${escapeHtml(I18N[lang].noMatch)}</div>`; return; }
+  box.innerHTML=list.map(p=>{
+    const pi=products.indexOf(p);
+    const qty=getQty(p.key);
+    const ctrl = qty>0
+      ? `<div class="stepper"><button class="step-btn" data-pi="${pi}" data-d="-1">−</button><span class="step-num">${qty}</span><button class="step-btn" data-pi="${pi}" data-d="1">+</button></div>`
+      : `<button class="add-btn" data-pi="${pi}" data-d="1">＋ ${escapeHtml(I18N[lang].add)}</button>`;
+    const sub=[ p.code?`<span>${escapeHtml(p.code)}</span>`:"", p.cat?`<span>${escapeHtml(p.cat)}</span>`:"" ].join("");
+    return `<div class="cat-row ${qty>0?'in-cart':''}">
+      <div class="info"><div class="name">${escapeHtml(nameOf(p))}</div>${sub?`<div class="sub">${sub}</div>`:""}</div>
+      <div class="price">${fmt(p.price)}</div>
+      ${ctrl}
+    </div>`;
+  }).join("");
+}
+
+function addProduct(idx){  // kept for compatibility; adds one via key
+  const p=products[idx]; if(p) setQty(p.key, getQty(p.key)+1, p);
+}
+
+function syncFromSheet(auto){
+  const url = $("sheetUrl").value.trim();
+  const t = I18N[lang];
+  if(!url){ if(!auto) toast(t.syncNoUrl); return; }
+  const btn = $("btnSync"); const orig = t.syncBtn;
+  btn.disabled = true; btn.textContent = t.syncing;
+  const cb = "qcb_" + Date.now();
+  const s = document.createElement("script");
+  const done = ()=>{ try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
+    if(s.parentNode) s.remove(); clearTimeout(timer); btn.disabled=false; btn.textContent=orig; };
+  const timer = setTimeout(()=>{ if(!auto) toast(t.syncFail); done(); }, 15000);
+  window[cb] = function(data){
+    const list = Array.isArray(data) ? data : (data && data.products) ? data.products : [];
+    applyProducts(list); done();
+  };
+  s.onerror = ()=>{ if(!auto) toast(t.syncFail); done(); };
+  const sep = url.indexOf("?")>-1 ? "&" : "?";
+  s.src = url + sep + "callback=" + cb + "&t=" + Date.now();
+  document.body.appendChild(s);
+}
+
+function buildWhatsApp(){
+  const t=I18N[lang];
+  const L=[];
+  L.push(`*${t.waTitle}*`);
+  const co=$("coName").value.trim(); if(co) L.push(`*${co}*`);
+  const coD=$("coDetails").value.trim(); if(coD) L.push(coD);
+  L.push("");
+  const qn=$("quoteNo").value.trim(); const dt=$("quoteDate").value;
+  if(qn) L.push(`${t.quoteNo}: ${qn}`);
+  if(dt) L.push(`${t.quoteDate}: ${dt.split("-").reverse().join("/")}`);
+  const custN=$("custName").value.trim(), custD=$("custDetails").value.trim();
+  if(custN||custD){ L.push(""); L.push(`${t.waTo}: ${custN}`); if(custD) L.push(custD); }
+  L.push(""); L.push("--------------------------------");
+  let total=0;
+  items.forEach((it,i)=>{
+    const amt=it.price*it.qty; total+=amt;
+    L.push(`${i+1}. ${nameOf(it)}${it.code?` (${it.code})`:""}`);
+    L.push(`   ${it.qty} x ${fmt(it.price)} = ${fmt(amt)}`);
+  });
+  L.push("--------------------------------");
+  L.push(`*${t.waTotal}: ${fmt(total)}*`);
+  return L.join("\n");
+}
+async function copyWhatsApp(){
+  if(!items.length){ toast(lang==="zh"?"请先添加项目":(lang==="ms"?"Sila tambah item dahulu":"Add items first")); return; }
+  const msg=buildWhatsApp();
+  try{ await navigator.clipboard.writeText(msg); }
+  catch(e){
+    const ta=document.createElement("textarea"); ta.value=msg; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); ta.remove();
+  }
+  toast(lang==="zh"?"已复制到剪贴板 ✓":(lang==="ms"?"Disalin ke papan klip ✓":"Copied to clipboard ✓"));
+}
+
+/* ---------------- persistence ---------------- */
+const SAVE_KEYS=["coName","coDetails","sheetUrl","quotePrefix"];
+function loadSaved(){
+  SAVE_KEYS.forEach(k=>{ const v=localStorage.getItem("q_"+k); if(v!==null) $(k).value=v; });
+}
+function saveField(k){ localStorage.setItem("q_"+k, $(k).value); }
+
+function nextQuoteNo(){
+  const y=new Date().getFullYear();
+  let n=parseInt(localStorage.getItem("q_counter")||"0",10)+1;
+  const px=($("quotePrefix").value.trim()||"Q");
+  return `${px}${y}-${String(n).padStart(4,"0")}`;
+}
+function bumpCounter(){
+  let n=parseInt(localStorage.getItem("q_counter")||"0",10)+1;
+  localStorage.setItem("q_counter",String(n));
+}
+
+/* ---------------- init & events ---------------- */
+function init(){
+  loadSaved();
+  if(!$("sheetUrl").value.trim() && DEFAULT_SHEET_URL) $("sheetUrl").value = DEFAULT_SHEET_URL;
+  $("quoteDate").value = new Date().toISOString().slice(0,10);
+  $("quoteNo").value = nextQuoteNo();
+  applyLang();
+
+  // language buttons
+  document.querySelectorAll(".lang-switch button").forEach(b=>{
+    b.addEventListener("click",()=>{ lang=b.dataset.lang; localStorage.setItem("q_lang",lang); applyLang(); });
+  });
+
+  // load CSV
+  $("btnLoad").addEventListener("click",()=>$("fileInput").click());
+  $("fileInput").addEventListener("change",e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{
+      try{ applyProducts(loadProductsFromCSV(rd.result)); }
+      catch(err){
+        toast(lang==="zh"?"CSV 格式无法识别，请检查表头":(lang==="ms"?"Format CSV tidak dikenali, semak tajuk lajur":"Couldn't read CSV — check the column headers"));
+      }
+    };
+    rd.readAsText(f,"utf-8");
+    e.target.value="";
+  });
+
+  // search + category filter → catalog
+  $("search").addEventListener("input",renderCatalog);
+  $("catChips").addEventListener("click",e=>{
+    const c=e.target.closest("[data-cat]"); if(!c) return;
+    selectedCat=c.dataset.cat; renderChips(); renderCatalog();
+  });
+  // catalog add / stepper
+  $("catalog").addEventListener("click",e=>{
+    const b=e.target.closest("[data-pi]"); if(!b) return;
+    const p=products[+b.dataset.pi]; if(!p) return;
+    setQty(p.key, getQty(p.key)+(+b.dataset.d), p);
+  });
+
+  // quotation table: price edit (live), qty stepper, remove
+  $("itemsBody").addEventListener("input",e=>{
+    const el=e.target; const idx=el.dataset.idx; if(idx===undefined||el.dataset.f!=="price") return;
+    items[idx].price=Math.max(0,parseFloat(el.value)||0);
+    let total=0; items.forEach(it=>total+=it.price*it.qty);
+    $("grandTotal").textContent=fmt(total);
+    const cell=el.closest("tr").children[4];
+    if(cell) cell.textContent=fmt(items[idx].price*items[idx].qty);
+  });
+  $("itemsBody").addEventListener("click",e=>{
+    const st=e.target.closest(".step-btn");
+    if(st){ const k=st.dataset.key; setQty(k, getQty(k)+(+st.dataset.d), prodByKey(k)); return; }
+    const rm=e.target.closest("[data-rmkey]");
+    if(rm){ setQty(rm.dataset.rmkey, 0); }
+  });
+
+  // live doc fields
+  ["coName","coDetails","custName","custDetails","quoteNo","quoteDate"].forEach(id=>{
+    $(id).addEventListener("input",()=>{ renderDoc(); if(SAVE_KEYS.includes(id)) saveField(id); });
+  });
+
+  // Google Sheet sync
+  $("btnSync").addEventListener("click",()=>syncFromSheet(false));
+  $("sheetUrl").addEventListener("input",()=>saveField("sheetUrl"));
+
+  // quote-number prefix (per device)
+  $("quotePrefix").addEventListener("input",()=>{
+    saveField("quotePrefix"); $("quoteNo").value=nextQuoteNo(); renderDoc();
+  });
+
+  // buttons
+  $("btnWa").addEventListener("click",copyWhatsApp);
+  $("btnPdf").addEventListener("click",()=>{ bumpCounter(); window.print(); });
+
+  renderDoc();
+
+  // auto-sync if a Web App URL was saved before (silent on failure)
+  if($("sheetUrl").value.trim()) syncFromSheet(true);
+}
+document.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>
